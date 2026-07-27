@@ -32,11 +32,11 @@ npx electron-rebuild -f -w better-sqlite3
 npm run dev
 ```
 
-## Pricing
+## Download
 
-Source code is public. You can build from source for free. A pre-built binary is available for $29 — because most people don't want to set up Node.js.
+**[Recon v0.1.0 (Windows, portable)](https://github.com/d4r4ki4n/recon/releases/download/v0.1.0/Recon-0.1.0.exe)** — 119MB, no installer, just run it.
 
-The source being public is the point: you can verify Recon never phones home. Privacy-first means verifiable, not just claimed.
+Source code is public (MIT). You can build from source for free, or download the pre-built binary. The source being public is the point: you can verify Recon never phones home. Privacy-first means verifiable, not just claimed.
 
 ## License
 
