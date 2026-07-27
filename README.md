@@ -32,6 +32,12 @@ npx electron-rebuild -f -w better-sqlite3
 npm run dev
 ```
 
+## Pricing
+
+Source code is public. You can build from source for free. A pre-built binary is available for $29 — because most people don't want to set up Node.js.
+
+The source being public is the point: you can verify Recon never phones home. Privacy-first means verifiable, not just claimed.
+
 ## License
 
 MIT
