@@ -1,6 +1,5 @@
 node_modules/
 out/
+release/
+*.exe
 dist/
-*.db
-*.log
-.DS_Store
