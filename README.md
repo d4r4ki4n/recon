@@ -14,7 +14,7 @@ Postman requires an account, is bloated, and moved to a subscription model. Alte
 - **Collections** — Organize requests into named collections. Filter history by collection.
 - **Environment variables** — Define variables per environment (dev, staging, prod). Use `{{var}}` syntax in URL, headers, and body. Switch environments with one click.
 - **Local-first** — All data in SQLite on your machine. No account, no sync, no telemetry.
-- **One-time purchase** — $29-49. No subscription.
+- **One-time purchase** — $39. No subscription.
 
 ## Tech Stack
 
