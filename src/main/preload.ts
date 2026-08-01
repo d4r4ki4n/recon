@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('recon', {
   createEnvironment: (name: string, variables: Record<string, string>) => ipcRenderer.invoke('environment:create', { name, variables }),
   getEnvironments: () => ipcRenderer.invoke('environment:list'),
   updateEnvironment: (id: number, name: string, variables: Record<string, string>) => ipcRenderer.invoke('environment:update', { id, name, variables }),
-  deleteEnvironment: (id: number) => ipcRenderer.invoke('environment:delete', { id })
+  deleteEnvironment: (id: number) => ipcRenderer.invoke('environment:delete', { id }),
+  deleteRequest: (id: number) => ipcRenderer.invoke('request:delete', { id })
 })

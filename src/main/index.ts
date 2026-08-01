@@ -5,7 +5,8 @@ import {
   initDB, saveRequest, searchRequests, getRequestHistory, getRequestById,
   createCollection, getCollections, deleteCollection, renameRequest,
   moveRequestToCollection, getRequestsByCollection,
-  createEnvironment, getEnvironments, updateEnvironment, deleteEnvironment
+  createEnvironment, getEnvironments, updateEnvironment, deleteEnvironment,
+  deleteRequest
 } from './db'
 import { executeRequest, substituteEnvVars } from './http'
 
@@ -94,6 +95,10 @@ ipcMain.handle('environment:update', async (_event, { id, name, variables }) => 
 
 ipcMain.handle('environment:delete', async (_event, { id }) => {
   deleteEnvironment(db, id)
+})
+
+ipcMain.handle('request:delete', async (_event, { id }) => {
+  deleteRequest(db, id)
 })
 
 app.on('window-all-closed', () => {

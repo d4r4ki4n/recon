@@ -144,15 +144,21 @@ export async function saveRequest(db: Database, req: SavedRequest): Promise<numb
 }
 
 export async function searchRequests(db: Database, query: string, limit: number = 20): Promise<any[]> {
-  const ftsResults = db.prepare(`
-    SELECT r.id, r.method, r.url, r.body, r.status, r.status_text, r.response_body, r.response_time_ms, r.created_at, r.name, r.collection_id,
-           bm25(requests_fts) as rank
-    FROM requests_fts
-    JOIN requests r ON r.id = requests_fts.rowid
-    WHERE requests_fts MATCH ?
-    ORDER BY rank
-    LIMIT ?
-  `).all(query, limit) as any[]
+  const escapedQuery = '"' + query.replace(/"/g, '""') + '"'
+  let ftsResults: any[] = []
+  try {
+    ftsResults = db.prepare(`
+      SELECT r.id, r.method, r.url, r.body, r.status, r.status_text, r.response_body, r.response_time_ms, r.created_at, r.name, r.collection_id,
+             bm25(requests_fts) as rank
+      FROM requests_fts
+      JOIN requests r ON r.id = requests_fts.rowid
+      WHERE requests_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `).all(escapedQuery, limit) as any[]
+  } catch {
+    ftsResults = []
+  }
 
   const queryEmbedding = await embed(query)
   const allRequests = db.prepare(`
@@ -237,4 +243,8 @@ export function updateEnvironment(db: Database, id: number, name: string, variab
 
 export function deleteEnvironment(db: Database, id: number): void {
   db.prepare('DELETE FROM environments WHERE id = ?').run(id)
+}
+
+export function deleteRequest(db: Database, id: number): void {
+  db.prepare('DELETE FROM requests WHERE id = ?').run(id)
 }

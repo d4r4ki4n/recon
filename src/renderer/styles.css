@@ -553,3 +553,38 @@ body {
 .scrollbar::-webkit-scrollbar-track { background: var(--bg); }
 .scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .scrollbar::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+.history-item-delete {
+  color: var(--text-dim);
+  cursor: pointer;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.history-item:hover .history-item-delete { opacity: 1; }
+.history-item-delete:hover { color: var(--red); }
+
+.response-headers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.response-header-row {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(59, 66, 97, 0.2);
+}
+
+.response-header-key {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.response-header-val {
+  color: var(--text);
+  word-break: break-all;
+}

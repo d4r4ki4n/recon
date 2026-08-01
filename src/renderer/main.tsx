@@ -45,6 +45,7 @@ function App() {
   const [headers, setHeaders] = useState<{key: string, value: string}[]>([{key: '', value: ''}])
   const [body, setBody] = useState('')
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers')
+  const [responseTab, setResponseTab] = useState<'body' | 'headers'>('body')
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [response, setResponse] = useState<any>(null)
@@ -205,6 +206,15 @@ function App() {
     setEnvVars(next)
   }
 
+  const handleDeleteRequest = async (id: number) => {
+    await recon.deleteRequest(id)
+    if (selectedId === id) {
+      setSelectedId(null)
+      setResponse(null)
+    }
+    await loadHistory()
+  }
+
   const formatJson = (text: string | null) => {
     if (!text) return ''
     try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text }
@@ -304,6 +314,7 @@ function App() {
               <div className="history-item-meta">
                 <span>{new Date(item.created_at).toLocaleString()}</span>
                 {item.response_time_ms && <span>{item.response_time_ms}ms</span>}
+                <span className="history-item-delete" onClick={(e) => { e.stopPropagation(); handleDeleteRequest(item.id) }}>delete</span>
               </div>
             </div>
           ))}
@@ -399,8 +410,23 @@ function App() {
                   </>
                 )}
               </div>
+              {!response.error && (
+                <div className="tabs">
+                  <div className={`tab ${responseTab === 'body' ? 'active' : ''}`} onClick={() => setResponseTab('body')}>Body</div>
+                  <div className={`tab ${responseTab === 'headers' ? 'active' : ''}`} onClick={() => setResponseTab('headers')}>Headers</div>
+                </div>
+              )}
               <div className="response-body scrollbar">
-                {response.error ? '' : formatJson(response.responseBody)}
+                {response.error ? '' : responseTab === 'body' ? formatJson(response.responseBody) : (
+                  <div className="response-headers-list">
+                    {Object.entries(response.responseHeaders || {}).map(([k, v]) => (
+                      <div key={k} className="response-header-row">
+                        <span className="response-header-key">{k}</span>
+                        <span className="response-header-val">{v as string}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           ) : (
