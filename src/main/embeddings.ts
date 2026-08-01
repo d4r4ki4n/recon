@@ -1,9 +1,8 @@
-import { pipeline, Pipeline } from '@xenova/transformers'
+let embedder: any = null
 
-let embedder: Pipeline | null = null
-
-async function getEmbedder(): Promise<Pipeline> {
+async function getEmbedder() {
   if (!embedder) {
+    const { pipeline } = await import('@xenova/transformers')
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
   }
   return embedder
