@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('recon', {
   updateEnvironment: (id: number, name: string, variables: Record<string, string>) => ipcRenderer.invoke('environment:update', { id, name, variables }),
   deleteEnvironment: (id: number) => ipcRenderer.invoke('environment:delete', { id }),
   deleteRequest: (id: number) => ipcRenderer.invoke('request:delete', { id }),
-  saveRequest: (req: any) => ipcRenderer.invoke('request:save', req)
+  saveRequest: (req: any) => ipcRenderer.invoke('request:save', req),
+  importPostman: (json: string) => ipcRenderer.invoke('import:postman', { json })
 })

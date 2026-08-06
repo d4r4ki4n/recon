@@ -66,6 +66,7 @@ function App() {
 
   const [requestName, setRequestName] = useState('')
   const [copied, setCopied] = useState(false)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
 
   const loadHistory = useCallback(async () => {
     if (activeCollection !== null) {
@@ -241,6 +242,23 @@ function App() {
     await loadHistory()
   }
 
+  const handleImportPostman = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportStatus('Importing...')
+    try {
+      const text = await file.text()
+      const result = await recon.importPostman(text)
+      setImportStatus(`Imported ${result.imported} requests into "${result.collectionName}"`)
+      await loadCollections()
+      await loadHistory()
+    } catch (err: any) {
+      setImportStatus(`Import failed: ${err.message}`)
+    }
+    e.target.value = ''
+    setTimeout(() => setImportStatus(null), 5000)
+  }
+
   const formatJson = (text: string | null) => {
     if (!text) return ''
     try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text }
@@ -252,6 +270,15 @@ function App() {
         <div className="sidebar-header">
           <h1>Recon</h1>
           <div className="sidebar-actions">
+            <label className="icon-btn import-btn" title="Import Postman collection">
+              ⬆
+              <input
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleImportPostman}
+              />
+            </label>
             <select
               className="env-select"
               value={activeEnv?.id || ''}
@@ -284,6 +311,7 @@ function App() {
         </div>
 
         <div className="collection-bar">
+          {importStatus && <div className="import-toast">{importStatus}</div>}
           <button
             className={`collection-tab ${activeCollection === null ? 'active' : ''}`}
             onClick={() => setActiveCollection(null)}

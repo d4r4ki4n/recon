@@ -248,3 +248,59 @@ export function deleteEnvironment(db: Database, id: number): void {
 export function deleteRequest(db: Database, id: number): void {
   db.prepare('DELETE FROM requests WHERE id = ?').run(id)
 }
+
+interface PostmanItem {
+  name?: string
+  request?: {
+    method?: string
+    url?: string | { raw?: string }
+    header?: Array<{ key: string, value: string }>
+    body?: { raw?: string }
+  }
+  item?: PostmanItem[]
+}
+
+export async function importPostmanCollection(db: Database, json: string): Promise<{ collectionName: string, imported: number }> {
+  const data = JSON.parse(json)
+  const collectionName = data?.info?.name || 'Imported Collection'
+  const collectionId = createCollection(db, collectionName)
+
+  let count = 0
+
+  const processItem = async (item: PostmanItem) => {
+    if (item.item && Array.isArray(item.item)) {
+      for (const child of item.item) await processItem(child)
+      return
+    }
+    if (!item.request) return
+
+    const method = (item.request.method || 'GET').toUpperCase()
+    const url = typeof item.request.url === 'string' ? item.request.url : (item.request.url?.raw || '')
+    if (!url) return
+
+    const headers: Record<string, string> = {}
+    if (item.request.header) {
+      for (const h of item.request.header) {
+        if (h.key) headers[h.key] = h.value
+      }
+    }
+
+    const body = item.request.body?.raw || null
+
+    await saveRequest(db, {
+      method,
+      url,
+      headers,
+      body,
+      name: item.name || null,
+      collection_id: collectionId
+    })
+    count++
+  }
+
+  if (data.item && Array.isArray(data.item)) {
+    for (const item of data.item) await processItem(item)
+  }
+
+  return { collectionName, imported: count }
+}

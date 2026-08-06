@@ -6,7 +6,7 @@ import {
   createCollection, getCollections, deleteCollection, renameRequest,
   moveRequestToCollection, getRequestsByCollection,
   createEnvironment, getEnvironments, updateEnvironment, deleteEnvironment,
-  deleteRequest
+  deleteRequest, importPostmanCollection
 } from './db'
 import { executeRequest, substituteEnvVars } from './http'
 
@@ -104,6 +104,10 @@ ipcMain.handle('request:delete', async (_event, { id }) => {
 ipcMain.handle('request:save', async (_event, { method, url, headers, body, collectionId, name }) => {
   const id = await saveRequest(db, { method, url, headers, body, collection_id: collectionId, name })
   return { id }
+})
+
+ipcMain.handle('import:postman', async (_event, { json }) => {
+  return importPostmanCollection(db, json)
 })
 
 app.on('window-all-closed', () => {
