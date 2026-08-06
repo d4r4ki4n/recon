@@ -1,6 +1,6 @@
 {
   "name": "recon",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first API client with semantic search over request history",
   "main": "out/main/index.js",
   "scripts": {

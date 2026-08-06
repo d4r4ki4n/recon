@@ -101,6 +101,11 @@ ipcMain.handle('request:delete', async (_event, { id }) => {
   deleteRequest(db, id)
 })
 
+ipcMain.handle('request:save', async (_event, { method, url, headers, body, collectionId, name }) => {
+  const id = await saveRequest(db, { method, url, headers, body, collection_id: collectionId, name })
+  return { id }
+})
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })

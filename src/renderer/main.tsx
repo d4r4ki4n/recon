@@ -65,6 +65,7 @@ function App() {
   const [envVars, setEnvVars] = useState<{key: string, value: string}[]>([{key: '', value: ''}])
 
   const [requestName, setRequestName] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const loadHistory = useCallback(async () => {
     if (activeCollection !== null) {
@@ -116,6 +117,31 @@ function App() {
       setResponse({ error: e.message })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!url) return
+    const headerObj: Record<string, string> = {}
+    for (const h of headers) {
+      if (h.key.trim()) headerObj[h.key.trim()] = h.value
+    }
+    await recon.saveRequest({
+      method,
+      url,
+      headers: headerObj,
+      body: ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? body : null,
+      collectionId: activeCollection,
+      name: requestName || undefined
+    })
+    await loadHistory()
+  }
+
+  const handleCopyResponse = () => {
+    if (response?.responseBody) {
+      navigator.clipboard.writeText(formatJson(response.responseBody))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
     }
   }
 
@@ -336,10 +362,16 @@ function App() {
             placeholder="https://api.example.com/endpoint"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSend() }
+              else if (e.key === 'Enter') handleSend()
+            }}
           />
           <button className="send-btn" onClick={handleSend} disabled={loading || !url}>
             {loading ? 'Sending...' : 'Send'}
+          </button>
+          <button className="save-btn" onClick={handleSave} disabled={!url} title="Save to collection without sending">
+            Save
           </button>
         </div>
 
@@ -390,6 +422,7 @@ function App() {
               placeholder='{"key": "value"}'
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSend() } }}
               style={{height: '150px'}}
             />
           )}
@@ -407,6 +440,9 @@ function App() {
                     {response.responseTimeMs && (
                       <span style={{color: 'var(--text-dim)'}}>{response.responseTimeMs}ms</span>
                     )}
+                    <button className="copy-btn" onClick={handleCopyResponse} title="Copy response body">
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
                   </>
                 )}
               </div>
