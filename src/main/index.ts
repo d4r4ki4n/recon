@@ -9,12 +9,15 @@ import {
   deleteRequest, importPostmanCollection
 } from './db'
 import { executeRequest, substituteEnvVars } from './http'
+import { seedIfEmpty } from './seed'
 
 let mainWindow: BrowserWindow | null = null
 let db: Database
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   db = initDB(path.join(app.getPath('userData'), 'recon.db'))
+
+  await seedIfEmpty(db)
 
   mainWindow = new BrowserWindow({
     width: 1200,
