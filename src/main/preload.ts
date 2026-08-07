@@ -17,5 +17,7 @@ contextBridge.exposeInMainWorld('recon', {
   deleteEnvironment: (id: number) => ipcRenderer.invoke('environment:delete', { id }),
   deleteRequest: (id: number) => ipcRenderer.invoke('request:delete', { id }),
   saveRequest: (req: any) => ipcRenderer.invoke('request:save', req),
-  importPostman: (json: string) => ipcRenderer.invoke('import:postman', { json })
+  importPostman: (json: string) => ipcRenderer.invoke('import:postman', { json }),
+  exportCollectionHttp: (collectionId: number) => ipcRenderer.invoke('collection:export-http', { collectionId }),
+  importHttp: (content: string, collectionName?: string) => ipcRenderer.invoke('import:http', { content, collectionName })
 })

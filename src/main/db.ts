@@ -304,3 +304,132 @@ export async function importPostmanCollection(db: Database, json: string): Promi
 
   return { collectionName, imported: count }
 }
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'request'
+}
+
+export function exportCollectionToHttp(db: Database, collectionId: number): { filename: string, content: string } {
+  const collection = db.prepare('SELECT name FROM collections WHERE id = ?').get(collectionId) as any
+  if (!collection) throw new Error('Collection not found')
+
+  const requests = db.prepare(`
+    SELECT method, url, headers, body, name FROM requests WHERE collection_id = ? ORDER BY created_at ASC
+  `).all(collectionId) as any[]
+
+  const lines: string[] = []
+  lines.push(`### ${collection.name}`)
+  lines.push(`### Exported from Recon on ${new Date().toISOString()}`)
+  lines.push('')
+
+  for (const req of requests) {
+    const name = req.name || `${req.method} ${req.url}`
+    lines.push(`### ${name}`)
+    lines.push(`${req.method} ${req.url}`)
+
+    const headers = JSON.parse(req.headers || '{}')
+    for (const [key, value] of Object.entries(headers)) {
+      lines.push(`${key}: ${value}`)
+    }
+
+    if (req.body) {
+      lines.push('')
+      lines.push(req.body)
+    }
+
+    lines.push('')
+    lines.push('###')
+    lines.push('')
+  }
+
+  const filename = sanitizeFilename(collection.name) + '.http'
+  return { filename, content: lines.join('\n') }
+}
+
+export async function importHttpFile(db: Database, content: string, collectionName?: string): Promise<{ collectionName: string, imported: number }> {
+  const requests: Array<{ name: string, method: string, url: string, headers: Record<string, string>, body: string | null }> = []
+  const lines = content.split('\n')
+
+  let currentName = ''
+  let currentMethod = ''
+  let currentUrl = ''
+  let currentHeaders: Record<string, string> = {}
+  let currentBody: string[] = []
+  let inBody = false
+  let hasRequest = false
+
+  const flushRequest = () => {
+    if (hasRequest && currentMethod && currentUrl) {
+      requests.push({
+        name: currentName,
+        method: currentMethod,
+        url: currentUrl,
+        headers: { ...currentHeaders },
+        body: currentBody.length > 0 ? currentBody.join('\n').trimEnd() : null
+      })
+    }
+    currentName = ''
+    currentMethod = ''
+    currentUrl = ''
+    currentHeaders = {}
+    currentBody = []
+    inBody = false
+    hasRequest = false
+  }
+
+  for (const line of lines) {
+    if (line.startsWith('### ') && !line.startsWith('### Exported')) {
+      if (hasRequest) flushRequest()
+      currentName = line.slice(4).trim()
+      continue
+    }
+    if (line === '###') {
+      flushRequest()
+      continue
+    }
+    if (line.startsWith('###') || line === '') {
+      if (!hasRequest && !currentMethod) continue
+      if (inBody) currentBody.push('')
+      continue
+    }
+    if (!currentMethod && /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/i.test(line)) {
+      const parts = line.split(/\s+/)
+      currentMethod = parts[0].toUpperCase()
+      currentUrl = parts.slice(1).join(' ')
+      hasRequest = true
+      continue
+    }
+    if (hasRequest && !inBody && /^[a-zA-Z-]+:\s/.test(line)) {
+      const colonIdx = line.indexOf(':')
+      const key = line.slice(0, colonIdx).trim()
+      const value = line.slice(colonIdx + 1).trim()
+      currentHeaders[key] = value
+      continue
+    }
+    if (hasRequest && currentMethod) {
+      inBody = true
+      currentBody.push(line)
+    }
+  }
+  flushRequest()
+
+  if (requests.length === 0) {
+    return { collectionName: collectionName || 'Imported', imported: 0 }
+  }
+
+  const name = collectionName || requests[0]?.name || 'Imported HTTP'
+  const collectionId = createCollection(db, name)
+
+  for (const req of requests) {
+    await saveRequest(db, {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body,
+      name: req.name,
+      collection_id: collectionId
+    })
+  }
+
+  return { collectionName: name, imported: requests.length }
+}

@@ -128,7 +128,19 @@ body {
   transition: opacity 0.1s;
 }
 
+.collection-export {
+  position: absolute;
+  top: -4px;
+  right: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
 .collection-tab-wrapper:hover .collection-delete { opacity: 1; }
+.collection-tab-wrapper:hover .collection-export { opacity: 1; }
 
 .new-collection-row {
   display: flex;

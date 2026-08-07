@@ -6,7 +6,7 @@ import {
   createCollection, getCollections, deleteCollection, renameRequest,
   moveRequestToCollection, getRequestsByCollection,
   createEnvironment, getEnvironments, updateEnvironment, deleteEnvironment,
-  deleteRequest, importPostmanCollection
+  deleteRequest, importPostmanCollection, exportCollectionToHttp, importHttpFile
 } from './db'
 import { executeRequest, substituteEnvVars } from './http'
 import { seedIfEmpty } from './seed'
@@ -111,6 +111,14 @@ ipcMain.handle('request:save', async (_event, { method, url, headers, body, coll
 
 ipcMain.handle('import:postman', async (_event, { json }) => {
   return importPostmanCollection(db, json)
+})
+
+ipcMain.handle('collection:export-http', async (_event, { collectionId }) => {
+  return exportCollectionToHttp(db, collectionId)
+})
+
+ipcMain.handle('import:http', async (_event, { content, collectionName }) => {
+  return importHttpFile(db, content, collectionName)
 })
 
 app.on('window-all-closed', () => {

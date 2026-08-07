@@ -259,6 +259,41 @@ function App() {
     setTimeout(() => setImportStatus(null), 5000)
   }
 
+  const handleImportHttp = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportStatus('Importing...')
+    try {
+      const text = await file.text()
+      const result = await recon.importHttp(text, file.name.replace(/\.http$/i, ''))
+      setImportStatus(`Imported ${result.imported} requests into "${result.collectionName}"`)
+      await loadCollections()
+      await loadHistory()
+    } catch (err: any) {
+      setImportStatus(`Import failed: ${err.message}`)
+    }
+    e.target.value = ''
+    setTimeout(() => setImportStatus(null), 5000)
+  }
+
+  const handleExportHttp = async (collectionId: number) => {
+    try {
+      const result = await recon.exportCollectionHttp(collectionId)
+      const blob = new Blob([result.content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = result.filename
+      a.click()
+      URL.revokeObjectURL(url)
+      setImportStatus(`Exported ${result.filename}`)
+      setTimeout(() => setImportStatus(null), 3000)
+    } catch (err: any) {
+      setImportStatus(`Export failed: ${err.message}`)
+      setTimeout(() => setImportStatus(null), 5000)
+    }
+  }
+
   const formatJson = (text: string | null) => {
     if (!text) return ''
     try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text }
@@ -277,6 +312,15 @@ function App() {
                 accept=".json"
                 style={{ display: 'none' }}
                 onChange={handleImportPostman}
+              />
+            </label>
+            <label className="icon-btn import-btn" title="Import .http file">
+              ⬇
+              <input
+                type="file"
+                accept=".http,.txt"
+                style={{ display: 'none' }}
+                onChange={handleImportHttp}
               />
             </label>
             <select
@@ -322,6 +366,7 @@ function App() {
                 className={`collection-tab ${activeCollection === col.id ? 'active' : ''}`}
                 onClick={() => setActiveCollection(col.id)}
               >{col.name}</button>
+              <span className="collection-export" title="Export as .http" onClick={() => handleExportHttp(col.id)}>⬇</span>
               <span className="collection-delete" onClick={() => handleDeleteCollection(col.id)}>x</span>
             </div>
           ))}
