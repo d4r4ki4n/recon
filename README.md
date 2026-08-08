@@ -38,7 +38,7 @@ npm run dev
 
 ## Download
 
-**[Recon v0.1.4 (Windows, portable)](https://github.com/d4r4ki4n/recon/releases/download/v0.1.4/Recon-0.1.4.exe)** — 121MB, no installer, just run it.
+**[Recon v0.1.5 (Windows, portable)](https://github.com/d4r4ki4n/recon/releases/download/v0.1.5/Recon-0.1.5.exe)** — 121MB, no installer, just run it.
 
 Source code is public (MIT). You can build from source for free, or download the pre-built binary. The source being public is the point: you can verify Recon never phones home. Privacy-first means verifiable, not just claimed.
 
