@@ -138,7 +138,7 @@ export async function saveRequest(db: Database, req: SavedRequest): Promise<numb
   const id = Number(result.lastInsertRowid)
   const searchText = buildSearchText(req)
   const embedding = await embed(searchText)
-  db.prepare('INSERT OR REPLACE INTO request_embeddings (request_id, embedding) VALUES (?, ?)').run(id, Buffer.from(embedding))
+  db.prepare('INSERT OR REPLACE INTO request_embeddings (request_id, embedding) VALUES (?, ?)').run(id, Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength))
 
   return id
 }
@@ -168,15 +168,15 @@ export async function searchRequests(db: Database, query: string, limit: number 
 
   const scored = allRequests.map(req => {
     const row = db.prepare('SELECT embedding FROM request_embeddings WHERE request_id = ?').get(req.id) as any
-    if (!row) return { ...req, semanticScore: 0, match_type: 'fts' }
-    const emb = Array.from(new Float32Array(row.embedding))
+    if (!row || !row.embedding) return { ...req, semanticScore: 0, match_type: 'fts' }
+    const emb = new Float32Array(row.embedding.buffer, row.embedding.byteOffset, row.embedding.byteLength / 4)
     const score = cosineSimilarity(queryEmbedding, emb)
     return { ...req, semanticScore: score, match_type: 'semantic' }
   }).sort((a, b) => b.semanticScore - a.semanticScore)
 
   const ftsIds = new Set(ftsResults.map(r => r.id))
-  const semanticOnly = scored.filter(r => !ftsIds.has(r.id)).slice(0, limit)
-  const combined = [...ftsResults, ...semanticOnly].slice(0, limit)
+  const semanticOnly = scored.filter(r => !ftsIds.has(r.id) && r.semanticScore > 0.1).slice(0, limit)
+  const combined = [...ftsResults.map(r => ({ ...r, match_type: 'fts' })), ...semanticOnly].slice(0, limit)
 
   return combined.map(r => {
     if (ftsIds.has(r.id) && (r as any).semanticScore !== undefined) {
@@ -188,14 +188,14 @@ export async function searchRequests(db: Database, query: string, limit: number 
 
 export function getRequestHistory(db: Database, limit: number = 50): any[] {
   return db.prepare(`
-    SELECT id, method, url, body, status, status_text, response_headers, response_body, response_time_ms, created_at, name, collection_id
-    FROM requests ORDER BY created_at DESC LIMIT ?
+    SELECT id, method, url, body, status, status_text AS statusText, response_headers AS responseHeaders, response_body AS responseBody, response_time_ms AS responseTimeMs, created_at, name, collection_id
+    FROM requests ORDER BY created_at DESC, id DESC LIMIT ?
   `).all(limit) as any[]
 }
 
 export function getRequestById(db: Database, id: number): any {
   return db.prepare(`
-    SELECT id, method, url, headers, body, status, status_text, response_headers, response_body, response_time_ms, created_at, name, collection_id
+    SELECT id, method, url, headers, body, status, status_text AS statusText, response_headers AS responseHeaders, response_body AS responseBody, response_time_ms AS responseTimeMs, created_at, name, collection_id
     FROM requests WHERE id = ?
   `).get(id) as any
 }
