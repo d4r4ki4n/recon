@@ -327,4 +327,127 @@ describe('environment variable substitution', () => {
   })
 })
 
-import { substituteEnvVars } from '../src/main/http'
+import { executeRequest, substituteEnvVars } from '../src/main/http'
+import http from 'http'
+
+let testServer: http.Server
+let testPort: number
+
+beforeEach(() => {
+  testServer = http.createServer((req, res) => {
+    if (req.url === '/get' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ url: `http://localhost:${testPort}/get`, method: 'GET' }))
+    } else if (req.url === '/post' && req.method === 'POST') {
+      let body = ''
+      req.on('data', (chunk) => body += chunk)
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ json: JSON.parse(body) }))
+      })
+    } else if (req.url === '/notfound' && req.method === 'GET') {
+      res.writeHead(404, { 'Content-Type': 'text/plain' })
+      res.end('Not Found')
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+  testServer.listen(0)
+  testPort = (testServer.address() as any).port
+})
+
+afterEach(() => {
+  testServer.close()
+})
+
+describe('executeRequest', () => {
+  it('makes a GET request and returns response', async () => {
+    const result = await executeRequest({
+      method: 'GET',
+      url: `http://localhost:${testPort}/get`,
+      headers: {},
+      body: null
+    })
+    expect(result.status).toBe(200)
+    expect(result.statusText).toBe('OK')
+    expect(result.responseTimeMs).toBeGreaterThan(0)
+    const body = JSON.parse(result.responseBody)
+    expect(body.method).toBe('GET')
+  })
+
+  it('makes a POST request with body', async () => {
+    const result = await executeRequest({
+      method: 'POST',
+      url: `http://localhost:${testPort}/post`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hello: 'world' })
+    })
+    expect(result.status).toBe(200)
+    const body = JSON.parse(result.responseBody)
+    expect(body.json).toEqual({ hello: 'world' })
+  })
+
+  it('returns response headers', async () => {
+    const result = await executeRequest({
+      method: 'GET',
+      url: `http://localhost:${testPort}/get`,
+      headers: {},
+      body: null
+    })
+    expect(result.status).toBe(200)
+    expect(result.responseHeaders['content-type']).toContain('application/json')
+  })
+
+  it('handles non-200 status codes', async () => {
+    const result = await executeRequest({
+      method: 'GET',
+      url: `http://localhost:${testPort}/notfound`,
+      headers: {},
+      body: null
+    })
+    expect(result.status).toBe(404)
+  })
+
+  it('handles invalid URLs', async () => {
+    await expect(executeRequest({
+      method: 'GET',
+      url: 'not-a-url',
+      headers: {},
+      body: null
+    })).rejects.toThrow('Invalid URL')
+  })
+
+  it('handles connection errors', async () => {
+    await expect(executeRequest({
+      method: 'GET',
+      url: 'http://localhost:1',
+      headers: {},
+      body: null
+    })).rejects.toThrow()
+  })
+})
+
+describe('substituteEnvVars', () => {
+  it('substitutes variables in URL', () => {
+    const result = substituteEnvVars('https://{{host}}/api/{{version}}', { host: 'example.com', version: 'v2' })
+    expect(result).toBe('https://example.com/api/v2')
+  })
+
+  it('leaves unmatched variables as-is', () => {
+    const result = substituteEnvVars('https://{{host}}/api', { version: 'v2' })
+    expect(result).toBe('https://{{host}}/api')
+  })
+
+  it('substitutes in headers and body', () => {
+    const headers = substituteEnvVars('Bearer {{token}}', { token: 'abc123' })
+    expect(headers).toBe('Bearer abc123')
+    const body = substituteEnvVars('{"user": "{{user}}"}', { user: 'admin' })
+    expect(body).toBe('{"user": "admin"}')
+  })
+
+  it('handles empty env', () => {
+    const result = substituteEnvVars('https://example.com/api', {})
+    expect(result).toBe('https://example.com/api')
+  })
+})
